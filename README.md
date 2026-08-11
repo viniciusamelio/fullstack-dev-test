@@ -130,7 +130,27 @@ a non-200.
 
 ## How to run
 
-Requires Node.js v20+, Bun (package manager/script runner only — the app
+**Option A — Docker (easiest, no local Node/Bun install needed):**
+
+```bash
+cd api
+cp .env.example .env        # then fill in OPENAI_API_KEY
+docker compose up --build    # http://localhost:3000 — migrations run automatically
+```
+
+Persists the SQLite file to `api/data/` on the host (bind-mounted), so
+data survives `docker compose down`/rebuilds. See `api/Dockerfile`'s top
+comment for one non-obvious thing it works around: it's pinned to
+**Node 22**, not the v20 stated elsewhere in this doc — `better-sqlite3`'s
+native binding reliably segfaults on Node 20 in this repo's exact
+dependency versions (reproduced with both its prebuilt binary and a
+from-source build), a real constraint discovered while wiring this up,
+not a Docker-specific workaround. `api/package.json`'s `engines.node` has
+been updated to `>=22` to match.
+
+**Option B — local Node/Bun:**
+
+Requires Node.js v22+, Bun (package manager/script runner only — the app
 itself runs on Node), and an OpenAI API key.
 
 ```bash
@@ -141,7 +161,7 @@ bun run db:migrate           # creates ./data/smash.db and applies the schema
 bun run dev                   # tsx watch — http://localhost:3000
 ```
 
-Try it:
+Try it (either option):
 
 ```bash
 curl -X POST http://localhost:3000/suggestions \

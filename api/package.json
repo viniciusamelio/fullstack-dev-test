@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "tsx watch src/presentation/http/main.ts",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",
+    "@ai-sdk/provider": "^4.0.7",
     "@orpc/contract": "^1.15.0",
     "@orpc/openapi": "^1.15.0",
     "@orpc/server": "^1.15.0",

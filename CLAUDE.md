@@ -10,8 +10,14 @@ change must clear.
 
 ## Stack
 
-- **Runtime:** Node.js v20 (executed via `tsx` in dev, plain `node` on the
-  `tsc` build output in prod).
+- **Runtime:** Node.js **v22+** (executed via `tsx` in dev, plain `node` on
+  the `tsc` build output in prod). Originally targeted v20; raised after
+  discovering `better-sqlite3@13`'s native binding (`NAPI_VERSION=10`)
+  reliably segfaults on `new Database(...)` under Node 20 — reproduced
+  identically with both its bundled prebuilt binary and a fresh
+  from-source build, so it's a real Node-version constraint, not an
+  environment quirk. See `Dockerfile`'s top comment for how this was
+  diagnosed.
 - **Package manager / script runner:** Bun (`bun install`, `bun run <script>`)
   — Bun is not the runtime here, only tooling.
 - **API layer:** [oRPC](https://orpc.dev) — contract-first (`@orpc/contract`),
@@ -232,6 +238,14 @@ bun run test                     # vitest run
 bun run test:coverage         # vitest run --coverage (must hit 100%, see QUALITY.md)
 bun run db:generate            # drizzle-kit generate (new migration from schema.ts)
 bun run db:migrate               # apply migrations to $DB_PATH
+```
+
+Or via Docker (`Dockerfile` + `docker-compose.yml`, pnpm-based build —
+see that file's top comment for why pnpm/Node 22 specifically):
+
+```bash
+cp .env.example .env        # fill in OPENAI_API_KEY
+docker compose up --build    # migrations run automatically on container start
 ```
 
 ## Environment

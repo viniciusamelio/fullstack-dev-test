@@ -1,0 +1,7 @@
+# pnpm-only config (this project isn't a workspace/monorepo — pnpm is used
+# solely for Docker builds, see Dockerfile's top comment). Disables pnpm
+# 11's "minimum release age" supply-chain check, which otherwise rejects
+# --frozen-lockfile installs whenever a pinned dependency happens to have
+# been republished (patch/prerelease) within the last ~24h — too strict
+# for this project's pace, and irrelevant to Bun-based local dev anyway.
+minimumReleaseAge: 0

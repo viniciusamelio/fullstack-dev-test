@@ -1,0 +1,15 @@
+name: smash-api
+
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      # Copy .env.example -> .env and fill in OPENAI_API_KEY before running.
+      - .env
+    environment:
+      DB_PATH: /app/data/smash.db
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
