@@ -20,6 +20,8 @@ const llmMessages: SuggestionMessages = ["a", "b", "c"];
 const cachedMessages: SuggestionMessages = ["x", "y", "z"];
 const staticMessages: SuggestionMessages = ["s1", "s2", "s3"];
 
+const llmCostUsd = 0.0000065;
+
 function makeRecord(overrides: Partial<PromptRunRecord> = {}): PromptRunRecord {
   return {
     id: 1,
@@ -30,6 +32,7 @@ function makeRecord(overrides: Partial<PromptRunRecord> = {}): PromptRunRecord {
     status: "success",
     errorMessage: null,
     latencyMs: 10,
+    costUsd: llmCostUsd,
     createdAt: new Date(),
     ...overrides,
   };
@@ -45,7 +48,7 @@ type Overrides = {
 
 function makeSut(overrides: Overrides = {}) {
   const llmGateway: LlmSuggestionGateway = overrides.llmGateway ?? {
-    generate: vi.fn().mockResolvedValue(Result.ok(llmMessages)),
+    generate: vi.fn().mockResolvedValue(Result.ok({ messages: llmMessages, costUsd: llmCostUsd })),
   };
   const promptRunRepository: PromptRunRepository = overrides.promptRunRepository ?? {
     create: vi.fn().mockResolvedValue(Result.ok(makeRecord())),
@@ -88,7 +91,7 @@ describe("DbGenerateSuggestions", () => {
 
     expect(Result.unwrap(result)).toEqual({ messages: llmMessages, source: "llm" });
     expect(promptRunRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "success", errorMessage: null }),
+      expect.objectContaining({ status: "success", errorMessage: null, costUsd: llmCostUsd }),
     );
     expect(suggestionResultRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ source: "llm", messages: llmMessages, promptRunId: 1 }),
@@ -155,7 +158,7 @@ describe("DbGenerateSuggestions", () => {
 
     expect(Result.unwrap(result)).toEqual({ messages: cachedMessages, source: "cache" });
     expect(promptRunRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "llm_failed", errorMessage: "429" }),
+      expect.objectContaining({ status: "llm_failed", errorMessage: "429", costUsd: null }),
     );
     expect(suggestionResultRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ source: "cache", messages: cachedMessages }),

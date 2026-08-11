@@ -235,11 +235,18 @@ counters live in a single process's memory — fine for one instance, would
 need a shared store (e.g. Redis) behind a load balancer.
 
 **Cost control & caching.** Every LLM call is audited in `prompt_runs`
-(occasion, relationship, prompt version, model, latency, status) — that's
-the mechanism to actually measure and control spend, not a guess. The
-model is the cheapest OpenAI chat model suitable for short structured
-text (`gpt-5-nano` by default, configurable via `OPENAI_MODEL` — worth
-re-checking against OpenAI's current pricing before relying on it).
+(occasion, relationship, prompt version, model, latency, status, **and
+`cost_usd`**) — that's the mechanism to actually measure and control
+spend, not a guess. `cost_usd` is computed per call from
+`generateText`'s reported `usage.inputTokens`/`usage.outputTokens`
+against a hardcoded $/1M-token table in `infra/llm/pricing.ts`
+(verified against OpenAI's own pricing page — $0.05/1M input,
+$0.40/1M output for `gpt-5-nano`, checked 2026-08-11), `null` for calls
+that failed (nothing to price) or use a model not yet in that table —
+it's a point-in-time snapshot, not fetched live, so it needs updating
+whenever `OPENAI_MODEL` changes or OpenAI reprices. The model itself is
+the cheapest OpenAI chat model suitable for short structured text
+(`gpt-5-nano` by default, configurable via `OPENAI_MODEL`).
 Caching in this test is **result-as-fallback**, not a request-time cache:
 a successful LLM answer for a given `occasion`+`relationship`+prompt
 version is reused only when a *later* call to the LLM fails, not to skip

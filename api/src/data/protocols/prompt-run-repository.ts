@@ -13,6 +13,8 @@ export type CreatePromptRunInput = {
   readonly status: PromptRunStatus;
   readonly errorMessage: string | null;
   readonly latencyMs: number;
+  /** USD cost of the LLM call, or `null` when it failed or couldn't be priced. */
+  readonly costUsd: number | null;
 };
 
 export type PromptRunRecord = CreatePromptRunInput & {

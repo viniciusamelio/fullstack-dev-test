@@ -12,6 +12,7 @@ const input: CreatePromptRunInput = {
   status: "success",
   errorMessage: null,
   latencyMs: 12,
+  costUsd: 0.0000065,
 };
 
 describe("DrizzlePromptRunRepository", () => {
@@ -24,6 +25,7 @@ describe("DrizzlePromptRunRepository", () => {
     expect(record.id).toBeGreaterThan(0);
     expect(record.occasion).toBe("birthday");
     expect(record.status).toBe("success");
+    expect(record.costUsd).toBe(0.0000065);
     expect(record.createdAt).toBeInstanceOf(Date);
   });
 

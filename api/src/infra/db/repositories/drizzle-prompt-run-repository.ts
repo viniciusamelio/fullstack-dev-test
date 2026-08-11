@@ -32,6 +32,7 @@ function toRecord(row: typeof promptRuns.$inferSelect): PromptRunRecord {
     status: row.status,
     errorMessage: row.errorMessage,
     latencyMs: row.latencyMs,
+    costUsd: row.costUsd,
     createdAt: row.createdAt,
   };
 }

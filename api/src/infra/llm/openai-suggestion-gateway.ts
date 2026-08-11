@@ -1,12 +1,14 @@
-import { generateText, type LanguageModel, Output } from "ai";
+import type { LanguageModelV4 } from "@ai-sdk/provider";
+import { generateText, Output } from "ai";
 import { Result } from "better-result";
 import { z } from "zod";
 import { LlmGenerationFailed } from "../../data/errors/llm-generation-failed.js";
 import type {
   GenerateSuggestionMessagesInput,
+  GenerateSuggestionMessagesOutput,
   LlmSuggestionGateway,
 } from "../../data/protocols/llm-suggestion-gateway.js";
-import type { SuggestionMessages } from "../../domain/models/suggestion-result.js";
+import { costUsdFor } from "./pricing.js";
 import { buildSuggestionPrompt, SUGGESTION_SYSTEM_PROMPT } from "./prompts/v1-suggestion-prompt.js";
 
 const suggestionSchema = z.object({
@@ -14,7 +16,7 @@ const suggestionSchema = z.object({
 });
 
 export type OpenAiSuggestionGatewayConfig = {
-  readonly model: LanguageModel;
+  readonly model: LanguageModelV4;
 };
 
 /** Infra adapter: calls OpenAI (cheapest suitable chat model) via ai-sdk. */
@@ -23,7 +25,7 @@ export class OpenAiSuggestionGateway implements LlmSuggestionGateway {
 
   async generate(
     input: GenerateSuggestionMessagesInput,
-  ): Promise<Result<SuggestionMessages, LlmGenerationFailed>> {
+  ): Promise<Result<GenerateSuggestionMessagesOutput, LlmGenerationFailed>> {
     const callResult = await Result.tryPromise({
       try: () =>
         generateText({
@@ -39,6 +41,12 @@ export class OpenAiSuggestionGateway implements LlmSuggestionGateway {
         }),
     });
 
-    return Result.map(callResult, (result) => result.output.messages as SuggestionMessages);
+    return Result.map(callResult, (result) => ({
+      messages: result.output.messages as GenerateSuggestionMessagesOutput["messages"],
+      costUsd: costUsdFor(this.config.model.modelId, {
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+      }),
+    }));
   }
 }

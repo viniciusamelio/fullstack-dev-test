@@ -3,7 +3,10 @@ import type { AddressInfo } from "node:net";
 import { Result } from "better-result";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LlmGenerationFailed } from "../../src/data/errors/llm-generation-failed.js";
-import type { LlmSuggestionGateway } from "../../src/data/protocols/llm-suggestion-gateway.js";
+import type {
+  GenerateSuggestionMessagesOutput,
+  LlmSuggestionGateway,
+} from "../../src/data/protocols/llm-suggestion-gateway.js";
 import { DbGenerateSuggestions } from "../../src/data/usecases/db-generate-suggestions.js";
 import { DrizzlePromptRunRepository } from "../../src/infra/db/repositories/drizzle-prompt-run-repository.js";
 import { DrizzleSuggestionResultRepository } from "../../src/infra/db/repositories/drizzle-suggestion-result-repository.js";
@@ -61,6 +64,15 @@ async function bodyOf(response: Response): Promise<SuggestionResponseBody> {
   return (await response.json()) as SuggestionResponseBody;
 }
 
+const mockCostUsd = 0.0000065;
+
+function llmSuccess(
+  messages: [string, string, string],
+  costUsd: number | null = mockCostUsd,
+): Result<GenerateSuggestionMessagesOutput, LlmGenerationFailed> {
+  return Result.ok({ messages, costUsd });
+}
+
 describe("suggestions e2e", () => {
   let server: Server | undefined;
 
@@ -74,7 +86,7 @@ describe("suggestions e2e", () => {
   it("returns LLM-generated messages on the happy path and audits the run", async () => {
     const app = buildApp();
     server = app.server;
-    vi.mocked(app.llmGateway.generate).mockResolvedValue(Result.ok(["a", "b", "c"]));
+    vi.mocked(app.llmGateway.generate).mockResolvedValue(llmSuccess(["a", "b", "c"]));
     const baseUrl = await listen(server);
 
     const response = await post(baseUrl, "/suggestions", {
@@ -88,13 +100,14 @@ describe("suggestions e2e", () => {
     const runs = app.db.select().from(promptRuns).all();
     expect(runs).toHaveLength(1);
     expect(runs[0]?.status).toBe("success");
+    expect(runs[0]?.costUsd).toBe(mockCostUsd);
   });
 
   it("falls back to the cached result on a later LLM failure for the same input", async () => {
     const app = buildApp();
     server = app.server;
     vi.mocked(app.llmGateway.generate)
-      .mockResolvedValueOnce(Result.ok(["a", "b", "c"]))
+      .mockResolvedValueOnce(llmSuccess(["a", "b", "c"]))
       .mockResolvedValueOnce(
         Result.err(new LlmGenerationFailed({ message: "429", cause: "rate limited" })),
       );
@@ -115,7 +128,9 @@ describe("suggestions e2e", () => {
 
     const runs = app.db.select().from(promptRuns).all();
     expect(runs).toHaveLength(2);
+    expect(runs[0]?.costUsd).toBe(mockCostUsd);
     expect(runs[1]?.status).toBe("llm_failed");
+    expect(runs[1]?.costUsd).toBeNull();
   });
 
   it("falls back to static messages when the LLM fails and there is no cache", async () => {
@@ -165,7 +180,7 @@ describe("suggestions e2e", () => {
     const limiter = createInMemoryRateLimiter({ limit: 2, windowMs: 60_000 });
     const app = buildApp(limiter);
     server = app.server;
-    vi.mocked(app.llmGateway.generate).mockResolvedValue(Result.ok(["a", "b", "c"]));
+    vi.mocked(app.llmGateway.generate).mockResolvedValue(llmSuccess(["a", "b", "c"]));
     const baseUrl = await listen(server);
     const body = { occasion: "birthday", relationship: "friend" };
 
@@ -197,7 +212,7 @@ describe("suggestions e2e", () => {
   it("sets CORS headers on a normal response", async () => {
     const app = buildApp();
     server = app.server;
-    vi.mocked(app.llmGateway.generate).mockResolvedValue(Result.ok(["a", "b", "c"]));
+    vi.mocked(app.llmGateway.generate).mockResolvedValue(llmSuccess(["a", "b", "c"]));
     const baseUrl = await listen(server);
 
     const response = await post(baseUrl, "/suggestions", {

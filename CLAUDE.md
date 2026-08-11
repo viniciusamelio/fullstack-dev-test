@@ -164,14 +164,24 @@ accepted trade-off for a soft per-IP guard, not a strict quota.
 ## Cost control
 
 Every LLM call attempt is a row in `prompt_runs` (occasion, relationship,
-prompt version, model, status, latency). This is the audit trail for
-tracking spend — query it to see call volume per prompt version, and the
-cache-fallback layer means a repeated `occasion`+`relationship` pair
-during an LLM outage costs zero extra LLM calls. The model itself
-(`OPENAI_MODEL`, default `openai/gpt-5-nano`) is picked for being OpenAI's
-cheapest model suitable for this kind of short, low-stakes structured
-text — re-check that against OpenAI's current pricing page before
-relying on it in production, since the model lineup changes.
+prompt version, model, status, latency, **cost_usd**). This is the audit
+trail for tracking spend — query it to see call volume *and actual $
+cost* per prompt version, and the cache-fallback layer means a repeated
+`occasion`+`relationship` pair during an LLM outage costs zero extra LLM
+calls.
+
+`cost_usd` is computed per successful call from `generateText`'s
+`usage.inputTokens`/`usage.outputTokens` against a hardcoded
+$/1M-token table in `infra/llm/pricing.ts` (`costUsdFor`), keyed by bare
+model id — `null` when the model isn't in that table or usage wasn't
+reported (e.g. every failed call: there's no completed call to price).
+That pricing table is a point-in-time snapshot (checked against OpenAI's
+pricing page on the date noted in the file), **not** fetched live — bump
+it whenever `OPENAI_MODEL` changes to a model not already listed, and
+re-verify the numbers periodically since OpenAI's pricing changes over
+time independently of this repo. The model itself (`OPENAI_MODEL`,
+default `openai/gpt-5-nano`) is picked for being OpenAI's cheapest model
+suitable for this kind of short, low-stakes structured text.
 
 ## Error handling: no raw `try`/`catch`
 

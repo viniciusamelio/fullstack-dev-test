@@ -18,15 +18,32 @@ function successGenerateResult(messages: [string, string, string]) {
 }
 
 describe("OpenAiSuggestionGateway", () => {
-  it("returns the parsed messages when the model call succeeds", async () => {
+  it("returns the parsed messages and priced cost when the model call succeeds", async () => {
     const model = new MockLanguageModelV4({
+      modelId: "gpt-5-nano",
       doGenerate: async () => successGenerateResult(["a", "b", "c"]),
     });
     const gateway = new OpenAiSuggestionGateway({ model });
 
     const result = await gateway.generate(input);
 
-    expect(Result.unwrap(result)).toEqual(["a", "b", "c"]);
+    // 10 input tokens * $0.05/1M + 5 output tokens * $0.4/1M
+    expect(Result.unwrap(result)).toEqual({
+      messages: ["a", "b", "c"],
+      costUsd: (10 / 1_000_000) * 0.05 + (5 / 1_000_000) * 0.4,
+    });
+  });
+
+  it("returns a null cost for a model that isn't in the pricing table", async () => {
+    const model = new MockLanguageModelV4({
+      modelId: "some-future-model",
+      doGenerate: async () => successGenerateResult(["a", "b", "c"]),
+    });
+    const gateway = new OpenAiSuggestionGateway({ model });
+
+    const result = await gateway.generate(input);
+
+    expect(Result.unwrap(result)).toEqual({ messages: ["a", "b", "c"], costUsd: null });
   });
 
   it("returns LlmGenerationFailed with the error message when the model call throws", async () => {

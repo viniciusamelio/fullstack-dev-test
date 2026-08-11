@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const promptRuns = sqliteTable("prompt_runs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -9,6 +9,8 @@ export const promptRuns = sqliteTable("prompt_runs", {
   status: text("status", { enum: ["success", "llm_failed"] }).notNull(),
   errorMessage: text("error_message"),
   latencyMs: integer("latency_ms").notNull(),
+  /** USD cost of this call, or null when it failed or couldn't be priced (see infra/llm/pricing.ts). */
+  costUsd: real("cost_usd"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

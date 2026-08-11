@@ -47,7 +47,7 @@ export class DbGenerateSuggestions implements GenerateSuggestions {
     const llmResult = await llmGateway.generate({ occasion, relationship, promptVersion });
 
     if (Result.isOk(llmResult)) {
-      const messages = llmResult.value;
+      const { messages, costUsd } = llmResult.value;
       const promptRunId = await this.recordRun({
         occasion,
         relationship,
@@ -56,6 +56,7 @@ export class DbGenerateSuggestions implements GenerateSuggestions {
         status: "success",
         errorMessage: null,
         latencyMs: Date.now() - startedAt,
+        costUsd,
       });
       await this.recordResult(promptRunId, occasion, relationship, messages, "llm");
       return Result.ok({ messages, source: "llm" });
@@ -69,6 +70,8 @@ export class DbGenerateSuggestions implements GenerateSuggestions {
       status: "llm_failed",
       errorMessage: llmResult.error.message,
       latencyMs: Date.now() - startedAt,
+      // No completed call to price — the LLM call itself is what failed.
+      costUsd: null,
     });
 
     const cachedMessages = await this.findCached(occasion, relationship, promptVersion);
