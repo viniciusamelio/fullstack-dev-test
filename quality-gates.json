@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "project": "smash-api",
+  "description": "Machine-readable quality gate consumed by CI and by contributors (human or AI) before opening a PR. See QUALITY.md for the rationale.",
+  "coverage": {
+    "tool": "vitest",
+    "command": "bun run test:coverage",
+    "provider": "v8",
+    "thresholds": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    },
+    "excludedFiles": [
+      {
+        "path": "api/src/**/index.ts",
+        "reason": "Barrel files, no logic of their own."
+      },
+      {
+        "path": "api/src/infra/db/migrations/**",
+        "reason": "drizzle-kit generated SQL, not hand-written/reviewed logic."
+      },
+      {
+        "path": "api/src/infra/db/migrate.ts",
+        "reason": "One-shot CLI bootstrap script (side-effecting: reads real env, opens a real DB file, calls process.exit). Exercised by running `bun run db:migrate` in CI/deploy, not by unit tests."
+      },
+      {
+        "path": "api/src/infra/db/schema.ts",
+        "reason": "Declarative Drizzle table definitions. The one non-declarative bit worth noting: a `.references(() => table.column)` callback is only invoked by drizzle-kit's own introspection, never at runtime, so it can't be exercised by an application-level test."
+      },
+      {
+        "path": "api/src/presentation/http/main.ts",
+        "reason": "Process entrypoint (side-effecting: reads real env, opens a real DB file and a real TCP port, calls process.exit). Exercised by running `bun run dev`/`bun run start`, not by unit tests. Its logic (env validation branch, wiring) is duplicated in a testable form by presentation/factories/make-generate-suggestions.ts and presentation/http/server.ts, both of which ARE covered."
+      }
+    ]
+  },
+  "requiredTestTypes": {
+    "domain": ["unit"],
+    "data": ["unit"],
+    "infra": ["integration"],
+    "presentation": ["component", "e2e"]
+  },
+  "testLocations": {
+    "unit": "api/tests/unit/**",
+    "integration": "api/tests/integration/**",
+    "component": "api/tests/component/**",
+    "e2e": "api/tests/e2e/**"
+  },
+  "maxLinesPerFile": {
+    "value": 500,
+    "exclude": []
+  },
+  "rules": [
+    "Every new/changed feature must ship with tests of the type(s) required for the layer(s) it touches (see requiredTestTypes).",
+    "No raw try/catch for fallible operations (LLM calls, DB reads/writes, env parsing) — use better-result (Result/TaggedError/Result.tryPromise/Result.gen). See CLAUDE.md 'Error handling' section.",
+    "A file may only be added to coverage.excludedFiles with a stated reason, reviewed like any other quality-gate change.",
+    "CI must run `bun run typecheck`, `bun run lint`, and `bun run test:coverage` and block merge on any of them failing."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786459807881,
+      "tag": "0000_funny_terror",
+      "breakpoints": true
+    }
+  ]
+}
