@@ -181,6 +181,33 @@ describe("suggestions e2e", () => {
     expect(app.llmGateway.generate).toHaveBeenCalledTimes(2);
   });
 
+  it("answers a CORS preflight OPTIONS request with 204 and no downstream handling", async () => {
+    const app = buildApp();
+    server = app.server;
+    const baseUrl = await listen(server);
+
+    const response = await fetch(`${baseUrl}/suggestions`, { method: "OPTIONS" });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+    expect(response.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(app.llmGateway.generate).not.toHaveBeenCalled();
+  });
+
+  it("sets CORS headers on a normal response", async () => {
+    const app = buildApp();
+    server = app.server;
+    vi.mocked(app.llmGateway.generate).mockResolvedValue(Result.ok(["a", "b", "c"]));
+    const baseUrl = await listen(server);
+
+    const response = await post(baseUrl, "/suggestions", {
+      occasion: "birthday",
+      relationship: "friend",
+    });
+
+    expect(response.headers.get("access-control-allow-origin")).toBe("*");
+  });
+
   it("serves the OpenAPI spec at GET /spec.json", async () => {
     const app = buildApp();
     server = app.server;

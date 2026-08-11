@@ -1,0 +1,101 @@
+{
+    "info": {
+        "title": "smash-api",
+        "version": "0.1.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        }
+    ],
+    "openapi": "3.1.1",
+    "paths": {
+        "/suggestions": {
+            "post": {
+                "operationId": "generate",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "occasion": {
+                                        "enum": [
+                                            "birthday",
+                                            "christmas",
+                                            "easter",
+                                            "valentines",
+                                            "anniversary",
+                                            "wedding",
+                                            "graduation",
+                                            "thank_you",
+                                            "get_well",
+                                            "congratulations",
+                                            "new_baby",
+                                            "retirement"
+                                        ],
+                                        "type": "string"
+                                    },
+                                    "relationship": {
+                                        "enum": [
+                                            "mother",
+                                            "father",
+                                            "sibling",
+                                            "husband",
+                                            "wife",
+                                            "friend",
+                                            "colleague",
+                                            "grandparent",
+                                            "child",
+                                            "partner"
+                                        ],
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "occasion",
+                                    "relationship"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "messages": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "minItems": 3,
+                                            "maxItems": 3
+                                        },
+                                        "source": {
+                                            "enum": [
+                                                "llm",
+                                                "cache",
+                                                "static"
+                                            ],
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "messages",
+                                        "source"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

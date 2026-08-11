@@ -22,6 +22,19 @@ export function createHttpServer(
   let specPromise: Promise<Record<string, unknown>> | undefined;
 
   return createNodeServer(async (req, res) => {
+    // CORS: permissive by design — this is a local test API consumed by a
+    // Flutter *web* build (browser XHR, so subject to CORS unlike mobile/
+    // desktop Dio), not a public production service. A real deployment
+    // would restrict this to a known origin allowlist instead of "*".
+    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
+    res.setHeader("access-control-allow-headers", "content-type");
+    if (req.method === "OPTIONS") {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
     const rateLimitResult = rateLimiter.check(getClientIp(req));
     if (!rateLimitResult.allowed) {
       const retryAfterSeconds = Math.ceil(rateLimitResult.retryAfterMs / 1000);
